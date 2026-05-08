@@ -3,7 +3,7 @@ perfuncted-lens
 
 ## Get started
 ```
-go install neurlang/perfuncted-lens/pflens/cmd/pflens@latest
+go install github.com/neurlang/perfuncted-lens/pflens/cmd/pflens@latest
 pflens
 go install github.com/nskaggs/perfuncted/cmd/pf@latest
 pf session start
