@@ -13,6 +13,7 @@ import (
 	"github.com/neurlang/wayland/wl"
 
 	"fmt"
+	"sync/atomic"
 )
 
 type lens struct {
@@ -31,8 +32,8 @@ func (lens *lens) Resize(_ *window.Widget, _ int32, _ int32, width int32, height
 
 	println("new size", size)
 
-	lens.width = width
-	lens.height = height
+	atomic.StoreInt32(&lens.width, width)
+	atomic.StoreInt32(&lens.height, height)
 
 	//lens.widget.ScheduleResize(lens.width, lens.height)
 }
@@ -130,17 +131,7 @@ func (lens *lens) Button(
 	state wl.PointerButtonState,
 	_ window.WidgetHandler,
 ) {
-	var btn int
-	switch button {
-	case 0:
-		btn = 1
-	case 1:
-		btn = 3
-	case 2:
-		btn = 2
-	default:
-		return
-	}
+	var btn = int(button)
 
 	if state == wl.PointerButtonStatePressed {
 		lens.pf.Input.MouseDown(btn)
@@ -297,7 +288,9 @@ func loop(lens *lens) {
 
 	for {
 		pf.Screen.CaptureRegion(
-			image.Rect(0, 0, 800, 600),
+			image.Rect(0, 0,
+			int(atomic.LoadInt32(&lens.width)),
+			int(atomic.LoadInt32(&lens.height))),
 			"/tmp/frame.png",
 		)
 
