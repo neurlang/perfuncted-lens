@@ -304,6 +304,5 @@ func loop(lens *lens) {
 		// reload image in viewer
 
 		time.Sleep(time.Millisecond * 33)
-		return
 	}
 }
