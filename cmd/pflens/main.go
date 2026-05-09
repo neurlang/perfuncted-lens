@@ -2,8 +2,7 @@ package main
 
 import "github.com/nskaggs/perfuncted"
 import "image"
-import "os"
-import "image/png"
+import "context"
 import (
 	"math/rand"
 	"time"
@@ -13,17 +12,20 @@ import (
 	"github.com/neurlang/wayland/wl"
 
 	"fmt"
-	"sync/atomic"
+	"sync"
 )
 
 type lens struct {
-	display     *window.Display
-	window      *window.Window
-	widget      *window.Widget
-	width       int32
-	height      int32
+	display *window.Display
+	window  *window.Window
+	widget  *window.Widget
+	width   int32
+	height  int32
 
-	pf          *perfuncted.Perfuncted
+	img      *image.Image
+	imgMutex sync.Mutex
+
+	pf *perfuncted.Perfuncted
 }
 
 func (lens *lens) Resize(_ *window.Widget, _ int32, _ int32, width int32, height int32) {
@@ -31,60 +33,51 @@ func (lens *lens) Resize(_ *window.Widget, _ int32, _ int32, width int32, height
 	size := int(width) * int(height)
 
 	println("new size", size)
-
-	atomic.StoreInt32(&lens.width, width)
-	atomic.StoreInt32(&lens.height, height)
-
 	//lens.widget.ScheduleResize(lens.width, lens.height)
 }
 
-func renderFrame(surface cairo.Surface, path string) {
-    file, err := os.Open(path)
-    if err != nil {
-        return
-    }
-    defer file.Close()
+func (lens *lens) renderFrame(surface cairo.Surface) {
+	lens.imgMutex.Lock()
+	img := *lens.img
+	lens.imgMutex.Unlock()
 
-    img, err := png.Decode(file)
-    if err != nil {
-        return
-    }
+	bounds := img.Bounds()
 
-    bounds := img.Bounds()
+	dst := surface.ImageSurfaceGetData()
+	stride := surface.ImageSurfaceGetStride()
 
-    dst := surface.ImageSurfaceGetData()
-    stride := surface.ImageSurfaceGetStride()
+	if dst == nil {
+		return
+	}
 
-    if dst == nil {
-        return
-    }
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			r, g, b, a := img.At(x, y).RGBA()
 
-    for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
-        for x := bounds.Min.X; x < bounds.Max.X; x++ {
-            r, g, b, a := img.At(x, y).RGBA()
+			off := y*stride + x*4
+			if off >= len(dst) {
+				continue
+			}
 
-            off := y*stride + x*4
-	if off >= len(dst) {continue;}
-
-            dst[off+0] = byte(b >> 8)
-            dst[off+1] = byte(g >> 8)
-            dst[off+2] = byte(r >> 8)
-            dst[off+3] = byte(a >> 8)
-        }
-    }
+			dst[off+0] = byte(b >> 8)
+			dst[off+1] = byte(g >> 8)
+			dst[off+2] = byte(r >> 8)
+			dst[off+3] = byte(a >> 8)
+		}
+	}
 }
 
 func (lens *lens) Redraw(widget *window.Widget) {
-    surface := lens.window.WindowGetSurface()
-    if surface != nil {
-        renderFrame(surface, "/tmp/frame.png")
-        surface.Destroy()
-    }
+	surface := lens.window.WindowGetSurface()
+	if surface != nil {
+		lens.renderFrame(surface)
+		surface.Destroy()
+	}
 
-    lens.widget.ScheduleRedraw()
+	lens.widget.ScheduleRedraw()
 }
 func lensMotionHandler(lens *lens, x float32, y float32) {
-	lens.pf.Input.MouseMove(int(x), int(y))
+	lens.pf.Input.MouseMove(context.Background(), int(x), int(y))
 }
 func (lens *lens) Key(
 	_ *window.Window,
@@ -97,10 +90,10 @@ func (lens *lens) Key(
 ) {
 	var entered = string(input.GetRune(&notUnicode, key))
 	if state == wl.KeyboardKeyStatePressed {
-		lens.pf.Input.KeyDown(entered)
-		lens.pf.Input.Type(entered)
+		lens.pf.Input.KeyDown(context.Background(), entered)
+		lens.pf.Input.Type(context.Background(), entered)
 	} else {
-		lens.pf.Input.KeyUp(entered)
+		lens.pf.Input.KeyUp(context.Background(), entered)
 	}
 }
 func (*lens) Focus(_ *window.Window, _ *window.Input) {
@@ -134,9 +127,9 @@ func (lens *lens) Button(
 	var btn = int(button)
 
 	if state == wl.PointerButtonStatePressed {
-		lens.pf.Input.MouseDown(btn)
+		lens.pf.Input.MouseDown(context.Background(), btn)
 	} else {
-		lens.pf.Input.MouseUp(btn)
+		lens.pf.Input.MouseUp(context.Background(), btn)
 	}
 }
 
@@ -190,15 +183,15 @@ func (lens *lens) Axis(
 	clicks := int(value)
 	if axis == 1 {
 		if clicks > 0 {
-			lens.pf.Input.ScrollUp(clicks)
+			lens.pf.Input.ScrollUp(context.Background(), clicks)
 		} else {
-			lens.pf.Input.ScrollDown(-clicks)
+			lens.pf.Input.ScrollDown(context.Background(), -clicks)
 		}
 	} else if axis == 0 {
 		if clicks > 0 {
-			lens.pf.Input.ScrollRight(clicks)
+			lens.pf.Input.ScrollRight(context.Background(), clicks)
 		} else {
-			lens.pf.Input.ScrollLeft(-clicks)
+			lens.pf.Input.ScrollLeft(context.Background(), -clicks)
 		}
 	}
 }
@@ -218,15 +211,15 @@ func (lens *lens) AxisDiscrete(
 	}
 	if axis == 1 {
 		if discrete > 0 {
-			lens.pf.Input.ScrollUp(int(discrete))
+			lens.pf.Input.ScrollUp(context.Background(), int(discrete))
 		} else {
-			lens.pf.Input.ScrollDown(-int(discrete))
+			lens.pf.Input.ScrollDown(context.Background(), -int(discrete))
 		}
 	} else if axis == 0 {
 		if discrete > 0 {
-			lens.pf.Input.ScrollRight(int(discrete))
+			lens.pf.Input.ScrollRight(context.Background(), int(discrete))
 		} else {
-			lens.pf.Input.ScrollLeft(-int(discrete))
+			lens.pf.Input.ScrollLeft(context.Background(), -int(discrete))
 		}
 	}
 }
@@ -275,8 +268,6 @@ func main() {
 func loop(lens *lens) {
 	pf, err := perfuncted.New(perfuncted.Options{
 		Nested: true,
-
-
 	})
 	if err != nil {
 		fmt.Println(err)
@@ -287,15 +278,18 @@ func loop(lens *lens) {
 	lens.pf = pf
 
 	for {
-		pf.Screen.CaptureRegion(
-			image.Rect(0, 0,
-			int(atomic.LoadInt32(&lens.width)),
-			int(atomic.LoadInt32(&lens.height))),
-			"/tmp/frame.png",
+		pixels, err := pf.Screen.GetAllPixels(
+			context.Background(),
 		)
-
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		lens.imgMutex.Lock()
+		lens.img = &pixels
+		lens.imgMutex.Unlock()
 		// reload image in viewer
 
-		time.Sleep(time.Millisecond * 33)
+		time.Sleep(time.Millisecond * 1)
 	}
 }

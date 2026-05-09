@@ -15,8 +15,8 @@ github.com/neurlang/wayland v0.4.1 h1:KrqGR8V0y8CqE2N7QGlwEj31WTTMr8+rGcWaKfqNxP
 github.com/neurlang/wayland v0.4.1/go.mod h1:ZPUsmrcHQDH9q26qvwrrlCJpo4HjfNiAZvbbWrLMMBo=
 github.com/neurlang/winc v0.1.2 h1:A3ke70Z7wfk3IKtLRnosKHhNPI6tSt3oG9XTx7lauFU=
 github.com/neurlang/winc v0.1.2/go.mod h1:M3RhPpObvIhmGBJtjVAlCUke88Bf4qAhu9kHqpCkqNA=
-github.com/nskaggs/perfuncted v0.2.5 h1:IXfwgmT1qIKNaCSOg2Ogy556OjQ/jTGSjMAzDjxvhvE=
-github.com/nskaggs/perfuncted v0.2.5/go.mod h1:bxZ7vF0F7G2Kab00dNZAbxRfzAhYGWejiIg2SL+fsr4=
+github.com/nskaggs/perfuncted v0.2.6-0.20260509022611-257487f64605 h1:6lDL0hMk+XkTEvoXgJmPEPk7CZrhXSP7h0zWA7atsBQ=
+github.com/nskaggs/perfuncted v0.2.6-0.20260509022611-257487f64605/go.mod h1:bxZ7vF0F7G2Kab00dNZAbxRfzAhYGWejiIg2SL+fsr4=
 github.com/spaolacci/murmur3 v1.1.0 h1:7c1g84S4BPRrfL5Xrdp6fOJ206sU9y293DDHaoy0bLI=
 github.com/spaolacci/murmur3 v1.1.0/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/yalue/native_endian v1.0.2 h1:e4SxBbaCoOOO4E3axd7FSriUhzc1bIzqZGG5jl6Evbg=

@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/neurlang/wayland v0.4.1
-	github.com/nskaggs/perfuncted v0.2.5
+	github.com/nskaggs/perfuncted v0.2.6-0.20260509022611-257487f64605
 )
 
 require (
